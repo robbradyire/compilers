@@ -3,7 +3,6 @@
 
 int MAX_INT = 2147483647;
 int MIN_INT = -2147483648;
-int END_OF_STRING = -2;
 int ERR = -1;
 int plus = '+';
 int minus = '-';
@@ -74,10 +73,6 @@ int get_val(char c)
     else if (c == '+' || c == '-')
     {
         return c;
-    }
-    else if (c == 0)
-    {
-        return END_OF_STRING;
     }
     else
     {
