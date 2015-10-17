@@ -29,7 +29,7 @@ main:
 	add	r5, sp, #4
 	movw	r4, #:lower16:.LANCHOR0
 	movt	r4, #:upper16:.LANCHOR0
-	ldmia	r4!, {r0, r1, r2, r3}
+	ldmia	r4!, {r0, r1, r2, r3}       ; put array on stack
 	stmia	r5!, {r0, r1, r2, r3}
 	ldr	r3, [r4]
 	str	r3, [r5]
@@ -37,31 +37,31 @@ main:
 	movs	r5, #1
 	mov	r3, r5
 	b	.L2
-.L7:
+.L7:                            ; i increase/comparison block
 	adds	r3, r5, #1
 	cmp	r3, #4
 	bgt	.L3
 	mov	r0, r5
 	mov	r5, r3
 .L2:
-	add	r1, sp, #24
+	add	r1, sp, #24             ; this block gets the two currently compared numbers from the array
 	add	r2, r1, r3, lsl #2
 	ldr	r1, [r2, #-20]
 	add	r4, sp, #24
 	add	r2, r4, r0, lsl #2
 	ldr	r2, [r2, #-20]
 	cmp	r1, r2
-	itttt	lt
-	addlt	r4, r4, r0, lsl #2
+	itttt	lt                  ; if r1 < r2 : skip 4 lines
+	addlt	r4, r4, r0, lsl #2  ; this block swaps the two numbers in the array
 	strlt	r1, [r4, #-20]
 	addlt	r6, sp, #24
 	addlt	r1, r6, r3, lsl #2
-	it	lt
+	it	lt                      ; if r1 < r2 : skip next line
 	strlt	r2, [r1, #-20]
-	adds	r3, r3, #1
+	adds	r3, r3, #1          ; increases and compares j
 	cmp	r3, #4
 	ble	.L2
-	b	.L7
+	b	.L7                     ; if j is done branch to i addition and comparison
 .L3:
 	ldr	r0, [sp, #4]
 	add	sp, sp, #28

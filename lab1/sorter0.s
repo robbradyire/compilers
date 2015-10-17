@@ -54,24 +54,24 @@ main:
 	str	r3, [r7, #4]                ; store i on stack
 	b	.L3                         ; branch to L3
 .L5:
-	ldr	r3, [r7, #4]
-	lsls	r3, r3, #2
-	add	r1, r7, #32
-	add	r3, r3, r1
+	ldr	r3, [r7, #4]                ; load j (same as i)
+	lsls    r3, r3, #2              ; multiply j by 4 for array index
+	add	r1, r7, #32                 ; r1 = fp + 8 words
+	add	r3, r3, r1                  ; 
 	ldr	r2, [r3, #-20]
 	ldr	r3, [r7]
 	lsls	r3, r3, #2
 	add	r1, r7, #32
 	add	r3, r3, r1
 	ldr	r3, [r3, #-20]
-	cmp	r2, r3
-	bge	.L4
+	cmp	r2, r3                      ; compare two numbers
+	bge	.L4                         ; if greater or equal, branch to increase of j
 	ldr	r3, [r7]
 	lsls	r3, r3, #2
 	add	r2, r7, #32
 	add	r3, r3, r2
 	ldr	r3, [r3, #-20]
-	str	r3, [r7, #8]
+	str	r3, [r7, #8]                ; block for swapping first and second numbers
 	ldr	r3, [r7, #4]
 	lsls	r3, r3, #2
 	add	r1, r7, #32
@@ -88,18 +88,18 @@ main:
 	add	r3, r3, r2
 	ldr	r2, [r7, #8]
 	str	r2, [r3, #-20]
-.L4:
+.L4:                                ; increase j
 	ldr	r3, [r7, #4]
 	adds	r3, r3, #1
 	str	r3, [r7, #4]
 .L3:
-	ldr	r3, [r7, #4]
-	cmp	r3, #4
-	ble	.L5
-	ldr	r3, [r7]
-	adds	r3, r3, #1
-	str	r3, [r7]
-.L2:
+	ldr	r3, [r7, #4]        ; load j (but use in place of i)
+	cmp	r3, #4              ; if (j < 5) {branch to L5}
+	ble	.L5                 ; else {
+	ldr	r3, [r7]            ;   load i
+	adds	r3, r3, #1      ;   i++
+	str	r3, [r7]            ;   store i
+.L2:                        ; }
 	ldr	r3, [r7]            ; load i
 	cmp	r3, #4              ; if (i < 5) {branch to L6}
 	ble	.L6                 ; else {
