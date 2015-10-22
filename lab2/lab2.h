@@ -138,15 +138,15 @@ int get_val(char c)
 {
     if (c >= '0' && c <= '9')
     {
-        return c - 48;
+        return c - '0';
     }
     else if (c >= 'A' && c <= 'F')
     {
-        return c - 55;
+        return c - 'A' + 10;
     }
     else if (c >= 'a' && c <= 'f')
     {
-        return c - 87;
+        return c - 'a' + 10;
     }
     else if (c == '+' || c == '-')
     {
@@ -172,10 +172,14 @@ int will_overflow(char* number, State * state)
         {
             return 1;
         }
+        else
+        {
+            return 0;
+        }
     }
     else if (state->base == 10 && len <= 10)
     {
-        if (len == 10 && strcmp(number + state->start_index, MAX_INT) > 0)
+        if (len == 10)
         {
             if (state->sign == 1 && strcmp(number + state->start_index, MAX_INT) > 0)
             {
@@ -186,6 +190,10 @@ int will_overflow(char* number, State * state)
                 return 1;
             }
         }
+        else
+        {
+            return 0;
+        }
     }
     else if (state->base == 16 && len > 8)
     {
@@ -194,23 +202,6 @@ int will_overflow(char* number, State * state)
     return 0;
 }
 
-void set_sign(char * number, State * state)
-{
-    if (state->base == 8 && (state->count - state->start_index) == 11)
-    {
-        if (number[state->start_index] > '1')
-        {
-            state->sign = -1;
-        }
-    }
-    else if(state->base == 16 && (state->count - state->start_index) == 8)
-    {
-        if (number[state->start_index] > '7')
-        {
-            state->sign = -1;
-        }
-    }
-}
 
 /* sum(string, *State)
  *
@@ -224,50 +215,38 @@ void sum(char *input, State *state)
     }
     else
     {
-        set_sign(input, state);
-        int total = 0;
+        int32_t total = 0;
         int sign = state->sign;
         int base = state->base;
+        int start_index = state->start_index;
         int count = state->count;
         int val;
         int i;
 
         if (base == 10)
         {
-            for (i = state->start_index; i < count; i++)
+            for (i = start_index; i < count; i++)
             {
-                val = get_val(input[i]);
-                if (val != plus && val != minus)
-                {
-                    total = total * base + sign * get_val(input[i]);
-                }
+                total = total * base + sign * get_val(input[i]);
             }
-            printf("%d\n", total);
+        }
+        else if (base == 8)
+        {
+            for (i = start_index; i < count; i++)
+            {
+                total = (total << 3) + get_val(input[i]);
+            }
+            total *= sign;
         }
         else
         {
-            if (state->sign == 1)
+            for (i = start_index; i < count; i++)
             {
-                total = 0;
-                for (i = state->start_index; i < count; i++)
-                {
-                    val = get_val(input[i]);
-                    total = total * base + val;
-                }
-                printf("%d\n", total);
+                total = (total << 4) + get_val(input[i]);
             }
-            else
-            {
-                total = -1;
-                for (i = state->start_index; i < count; i++)
-                {
-                    val = get_val(input[i]);
-                    total = total * base + (val = base);
-                }
-                total--;
-                printf("%d\n", total);
-            }
+            total *= sign;
         }
+        printf("Total: %d\n", total);
     }
 }
 

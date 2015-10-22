@@ -3,10 +3,9 @@
 int main()
 {
     State * state = new_state();
-    state->count = 11;
-    state->base = 8;
-    state->start_index = 1;
-    state->sign = 1;
+    state->count = 8;
+    state->base = 16;
+    state->start_index = 0;
 
-    sum("37777777777", state);
+    sum("F0F01234", state);
 }

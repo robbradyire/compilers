@@ -19,7 +19,12 @@ int state_table[8][8] = {
 int update_state(char c, State * state)
 {
     StateName err_state = STATE_ERR;
+    
+    printf("Current state: %d Input: %c ", state->state_name, c);
+
+    StateName last_state = state->state_name;
     state->state_name = state_table[state->state_name][char_type(c)];
+    printf("new state: %d\n", state->state_name);
     if (state->state_name == err_state)
     {
         return invalid_input;
@@ -27,10 +32,10 @@ int update_state(char c, State * state)
     else if (state->state_name == leading_zero || state->state_name == got_sign)
     {
         state->start_index++;
-    }
-    if (c == minus)
-    {
-        state->sign = -1;
+        if (c == minus)
+        {
+            state->sign = -1;
+        }
     }
     switch (state->state_name)
     {
@@ -63,8 +68,6 @@ int main(int argc, char * argv[])
     InputType input;
     State * state;
     char c;
-    InputType input_err = INPUT_ERR;
-    ErrorType err = no_error;
 
     for (arg_count = 1; arg_count < argc; arg_count++)
     {
@@ -75,7 +78,7 @@ int main(int argc, char * argv[])
         for (i = 0; isFinished != 1; i++)
         {
             c = argv[arg_count][i];
-            if (char_type(c) == input_err)
+            if (char_type(c) == INPUT_ERR)
             {
                 isValid = 0;
                 isFinished = 1;
@@ -91,6 +94,19 @@ int main(int argc, char * argv[])
                 {
                     isValid = 1;
                     isFinished = 1;
+                    StateName prev = state->prev_state;
+                    if (prev == got_1_to_7)
+                    {
+                        state->base = 8;
+                    }
+                    else if (prev == got_8_9 || prev == num_after_sign)
+                    {
+                        state->base = 10;
+                    }
+                    else if (prev == got_hex || prev == got_h)
+                    {
+                        state->base = 16;
+                    }
                 }
             }
         }
@@ -100,7 +116,8 @@ int main(int argc, char * argv[])
         }
         else
         {
-            printf("%s\n", sum(argv[arg_count], state));
+            printf("base: %d\n", state->base);
+            sum(argv[arg_count], state);
         }
     }
     printf("Program finished\n");
