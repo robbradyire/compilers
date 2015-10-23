@@ -1,18 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-char * MAX_INT = "2147483647";
-char * MIN_INT = "2147483648";
+char * MAX_INT_STR = "2147483647";
+char * MIN_INT_STR = "2147483648";
+char valid[] = "Valid";
 int ERR = -1;
-int plus = '+';
-int minus = '-';
 
 typedef enum {
     zero,
     one_to_seven,
     eight_nine,
-    hex,
+    input_hex,
     bB,
     hH,
     sign,
@@ -21,15 +21,17 @@ typedef enum {
 } InputType;
 
 typedef enum {
-    leading_zero,
-    got_1_to_7,
-    got_8_9,
-    got_hex,
-    got_b,
+    empty,
+    zeroes,
+    octal,
+    base10,
+    hex,
+    octal_b,
     got_h,
     got_sign,
-    num_after_sign,
-    VALID,
+    signed_zeroes,
+    signed_num,
+    ACCEPT,
     STATE_ERR
 } StateName;
 
@@ -48,8 +50,9 @@ typedef struct {
     StateName state_name;
     int base;
     int sign;
-    int start_index;
+    int index_start;
     int count;
+    int isZero;
 } State;
 
 /* new_state()
@@ -60,11 +63,12 @@ State * new_state()
 {
     State * state;
     state = malloc(sizeof(State));
-    state->state_name = leading_zero;
-    state->base = 10;
+    state->state_name = empty;
+    state->base = 8;
     state->sign = 1;
-    state->start_index = 0;
+    state->index_start = 0;
     state->count = 0;
+    state->isZero = 1;
     return state; 
 }
 
@@ -77,9 +81,6 @@ void delete_state(State * state)
     free(state);
 }
 
-char over[] = "Overflow";
-char valid[] = "Valid";
-
 /* char_type(char)
  *
  * returns the type of character(num, hex etc.)
@@ -87,6 +88,7 @@ char valid[] = "Valid";
 int char_type(char c)
 {
     InputType type;
+    char low_char = tolower(c);
     if (c == 0)
     {
         type = end_string;
@@ -103,15 +105,15 @@ int char_type(char c)
     {
         type = eight_nine;
     }
-    else if (c == 'b' || c ==  'B')
+    else if (low_char == 'b')
     {
         type = bB;
     }
-    else if ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))
+    else if (low_char >= 'a' && low_char <= 'f')
     {
-        type = hex;
+        type = input_hex;
     }
-    else if (c == 'h' || c == 'H')
+    else if (low_char == 'h')
     {
         type = hH;
     }
@@ -136,17 +138,14 @@ int char_type(char c)
  */
 int get_val(char c)
 {
+    char low_char = tolower(c);
     if (c >= '0' && c <= '9')
     {
         return c - '0';
     }
-    else if (c >= 'A' && c <= 'F')
+    else if (low_char >= 'a' && low_char <= 'f')
     {
-        return c - 'A' + 10;
-    }
-    else if (c >= 'a' && c <= 'f')
-    {
-        return c - 'a' + 10;
+        return low_char - 'a' + 10;
     }
     else if (c == '+' || c == '-')
     {
@@ -165,10 +164,10 @@ int get_val(char c)
  */
 int will_overflow(char* number, State * state)
 {
-    int len = state->count - state->start_index;
+    int len = state->count - state->index_start;
     if (state->base == 8 && len <= 11)
     {
-        if (len == 11 && number[state->start_index] > '3')
+        if (len == 11 && number[state->index_start] > '3')
         {
             return 1;
         }
@@ -181,11 +180,11 @@ int will_overflow(char* number, State * state)
     {
         if (len == 10)
         {
-            if (state->sign == 1 && strcmp(number + state->start_index, MAX_INT) > 0)
+            if (state->sign == 1 && strcmp(number + state->index_start, MAX_INT_STR) > 0)
             {
                 return 1;
             }
-            else if(strcmp(number + state->start_index, MIN_INT) > 0)
+            else if(strcmp(number + state->index_start, MIN_INT_STR) > 0)
             {
                 return 1;
             }
@@ -211,42 +210,49 @@ void sum(char *input, State *state)
 {
     if (will_overflow(input, state))
     {
-        printf("%s\n", over);
+        printf("%s is too large, overflow will occur\n", input);
     }
     else
     {
         int32_t total = 0;
         int sign = state->sign;
         int base = state->base;
-        int start_index = state->start_index;
+        int index_start = state->index_start;
         int count = state->count;
         int val;
         int i;
 
-        if (base == 10)
+        if (state->isZero)
         {
-            for (i = start_index; i < count; i++)
-            {
-                total = total * base + sign * get_val(input[i]);
-            }
-        }
-        else if (base == 8)
-        {
-            for (i = start_index; i < count; i++)
-            {
-                total = (total << 3) + get_val(input[i]);
-            }
-            total *= sign;
+            total = 0;
         }
         else
         {
-            for (i = start_index; i < count; i++)
+            if (base == 10)
             {
-                total = (total << 4) + get_val(input[i]);
+                for (i = index_start; i < count; i++)
+                {
+                    total = total * base + sign * get_val(input[i]);
+                }
             }
-            total *= sign;
+            else if (base == 8)
+            {
+                for (i = index_start; i < count; i++)
+                {
+                    total = (total << 3) + get_val(input[i]);
+                }
+                total *= sign;
+            }
+            else
+            {
+                for (i = index_start; i < count; i++)
+                {
+                    total = (total << 4) + get_val(input[i]);
+                }
+                total *= sign;
+            }
         }
-        printf("Total: %d\n", total);
+        printf("%s is valid. It is equal to %d in decimal\n", input, total);
     }
 }
 

@@ -1,15 +1,17 @@
 #include "lab2.h"
 
 // this table holds all the transistions from state to state, as [current_state][input]
-int state_table[8][8] = {
-    {leading_zero,   got_1_to_7,     got_8_9,        got_hex,  STATE_ERR,  STATE_ERR, got_sign, STATE_ERR}, // state: leading_zero
-    {got_1_to_7,     got_1_to_7,     got_8_9,        got_hex,  got_b,      got_h,     STATE_ERR, VALID}, // state: got_1_to_7
-    {got_8_9,        got_8_9,        got_8_9,        got_hex,  got_hex,    got_h,     STATE_ERR, VALID}, // state: got_8_9
-    {got_hex,        got_hex,        got_hex,        got_hex,  got_hex,    got_h,     STATE_ERR, STATE_ERR}, // state: got_hex
-    {got_hex,        got_hex,        got_hex,        got_hex,  got_hex,    got_h,     STATE_ERR, VALID}, // state: got_b
-    {STATE_ERR,      STATE_ERR,      STATE_ERR,      STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR, VALID}, // state: got_h
-    {got_sign,       num_after_sign, num_after_sign, STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR}, // got_sign
-    {num_after_sign, num_after_sign, num_after_sign, STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR, VALID} // num_after_sign
+int state_table[10][8] = {
+    {zeroes,        octal,      base10,     hex,       hex,       STATE_ERR, got_sign,  STATE_ERR},// empty
+    {zeroes,        octal,      base10,     hex,       octal_b,   got_h,     STATE_ERR, ACCEPT},   // zeroes
+    {octal,         octal,      base10,     hex,       octal_b,   got_h,     STATE_ERR, ACCEPT},   // octal
+    {base10,        base10,     base10,     hex,       hex,       got_h,     STATE_ERR, ACCEPT},   // base10
+    {hex,           hex,        hex,        hex,       hex,       got_h,     STATE_ERR, STATE_ERR},// hex
+    {hex,           hex,        hex,        hex,       hex,       got_h,     STATE_ERR, ACCEPT},   // octal_b
+    {STATE_ERR,     STATE_ERR,  STATE_ERR,  STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR, ACCEPT},   // got_h
+    {signed_zeroes, signed_num, signed_num, STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR},// got_sign
+    {signed_zeroes, signed_num, signed_num, STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR, ACCEPT},   // signed_zeroes
+    {signed_num,    signed_num, signed_num, STATE_ERR, STATE_ERR, STATE_ERR, STATE_ERR, ACCEPT}    // signed_num
 };
 
 /* update_state(char, State)
@@ -18,43 +20,75 @@ int state_table[8][8] = {
  */
 int update_state(char c, State * state)
 {
-    StateName err_state = STATE_ERR;
-    
-    printf("Current state: %d Input: %c ", state->state_name, c);
+    StateName current_state = state->state_name;
+    InputType input_type = char_type(c);
+    StateName next_state = state_table[current_state][input_type];
 
-    StateName last_state = state->state_name;
-    state->state_name = state_table[state->state_name][char_type(c)];
-    printf("new state: %d\n", state->state_name);
-    if (state->state_name == err_state)
+    if (next_state == zeroes)
     {
-        return invalid_input;
+        state->count++;
+        state->index_start++;
     }
-    else if (state->state_name == leading_zero || state->state_name == got_sign)
+    else if (next_state == octal)
     {
-        state->start_index++;
-        if (c == minus)
+        state->count++;
+        state->isZero = 0;
+    }
+    else if (next_state == base10)
+    {
+        state->count++;
+        state->isZero = 0;
+        state->base = 10;
+    }
+    else if (next_state == hex)
+    {
+        if (current_state == octal_b)
+        {
+            state->count++;
+        }
+        state->count++;
+        state->base = 16;
+        state->isZero = 0;
+    }
+    else if (next_state == octal_b)
+    {
+        state->base = 8;
+    }
+    else if (next_state == got_h)
+    {
+        if (current_state == octal_b)
+        {
+            state->count++;
+            state->isZero = 0;
+        }
+        state->base = 16;
+    }
+    else if (next_state == got_sign)
+    {
+        state->count++;
+        state->index_start++;
+        state->base = 10;
+        if (c == '-')
         {
             state->sign = -1;
         }
     }
-    switch (state->state_name)
+    else if (next_state == signed_zeroes)
     {
-        case got_1_to_7:
-            state->base = 8;
-            break;
-        case got_8_9:
-        case got_sign:
-            state->base = 10;
-            break;
-        case got_hex:
-        case got_h:
-            state->base = 16;
-            break;
-        default:
-            break;
+        state->count++;
+        state->index_start++;
     }
-    state->count++;
-    return no_error;
+    else if (next_state == signed_num)
+    {
+        state->count++;
+        state->isZero = 0;
+    }
+    else if (next_state == ACCEPT && current_state == octal)
+    {
+        state->base = 10;
+    }
+    state->state_name = next_state;
+    return next_state;
 }
 
 int main(int argc, char * argv[])
@@ -65,7 +99,6 @@ int main(int argc, char * argv[])
     }
 
     int arg_count, isValid, isFinished, i;
-    InputType input;
     State * state;
     char c;
 
@@ -85,28 +118,15 @@ int main(int argc, char * argv[])
             }
             else
             {
-                if (update_state(c, state) == invalid_input)
+                if (update_state(c, state) == STATE_ERR)
                 {
                     isValid = 0;
                     isFinished = 1;
                 }
-                else if (state->state_name == VALID)
+                else if (state->state_name == ACCEPT)
                 {
                     isValid = 1;
                     isFinished = 1;
-                    StateName prev = state->prev_state;
-                    if (prev == got_1_to_7)
-                    {
-                        state->base = 8;
-                    }
-                    else if (prev == got_8_9 || prev == num_after_sign)
-                    {
-                        state->base = 10;
-                    }
-                    else if (prev == got_hex || prev == got_h)
-                    {
-                        state->base = 16;
-                    }
                 }
             }
         }
@@ -116,7 +136,6 @@ int main(int argc, char * argv[])
         }
         else
         {
-            printf("base: %d\n", state->base);
             sum(argv[arg_count], state);
         }
     }
