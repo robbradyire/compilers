@@ -102,12 +102,14 @@ int main(int argc, char * argv[])
     State * state;
     char c;
 
+    // Loop through each argument
     for (arg_count = 1; arg_count < argc; arg_count++)
     {
         state = new_state();
         isValid = 1;
         isFinished = 0;
         i = 0;
+        // Loop through each character
         for (i = 0; isFinished != 1; i++)
         {
             c = argv[arg_count][i];
@@ -132,13 +134,14 @@ int main(int argc, char * argv[])
         }
         if (!isValid)
         {
-            printf("Not a valid input\n");
+            printf("%s is not a valid input\n", argv[arg_count]);
         }
         else
         {
             sum(argv[arg_count], state);
         }
     }
+    delete_state(state);
     printf("Program finished\n");
     return 0;
 }

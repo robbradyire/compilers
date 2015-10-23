@@ -5,9 +5,9 @@
 
 char * MAX_INT_STR = "2147483647";
 char * MIN_INT_STR = "2147483648";
-char valid[] = "Valid";
 int ERR = -1;
 
+// Enum of input types
 typedef enum {
     zero,
     one_to_seven,
@@ -20,6 +20,7 @@ typedef enum {
     INPUT_ERR
 } InputType;
 
+// Enum of State Names
 typedef enum {
     empty,
     zeroes,
@@ -35,6 +36,7 @@ typedef enum {
     STATE_ERR
 } StateName;
 
+// Enum of errors
 typedef enum {
     no_error,
     overflow,
@@ -43,8 +45,10 @@ typedef enum {
 
 /* State
  *
- * contains the state number, the base (8, 10 or 16)
- * and the sign (-1 or 1)
+ * contains the state number, the base (8, 10 or 16),
+ * sign (-1 or 1), a count of the number of characters up to the terminator,
+ * a count of how many characters until a non-zero or non-sign,
+ * and a boolean of whether or not the number is zero
  */
 typedef struct {
     StateName state_name;
@@ -57,7 +61,7 @@ typedef struct {
 
 /* new_state()
  *
- * Creates and initializes a State
+ * Creates and initializes a State to be an octal number
  */
 State * new_state()
 {
@@ -160,7 +164,8 @@ int get_val(char c)
 /* will_overflow(str, State)
  *
  * checks whether a string will overflow
- * returns: 1 if the will overflow, 0 otherwise
+ * it does this differently depending on the base
+ * returns: 1 if the number will overflow, 0 otherwise
  */
 int will_overflow(char* number, State * state)
 {
